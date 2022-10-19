@@ -5,6 +5,8 @@
 /********************************************/
 //#define parametrage // utiliser pour faire les essais sans les accessoires
 
+#define F50HZ   // Frequence du reseau 50Hz ou 60Hz non testé
+
 //**** options MINI ****
 #define EcranOled         // si pas d'écran oled      installer librairie heltec dev board
 #define MesureTemperature // capteur DS18B20       installer librairie dallas temperature
@@ -16,7 +18,7 @@
 //**** options MAXI  ****
 #define Pzem04t // utilise un pzem004 pour la mesure de puissance dans le ballon  inclure  https://github.com/mandulaj/PZEM-004T-v30
 #define Sortie2 // utilise un 2eme triac
-#define F50HZ   // Frequence du reseau 50Hz ou 60Hz non testé
+
 
 const int VERBOSE = 1; // 0 pour rien , 1 pour info traceur serie, 2 pour error, 3 pour debug
 struct param
