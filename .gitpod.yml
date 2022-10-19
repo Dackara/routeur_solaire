@@ -7,3 +7,7 @@ tasks:
       git pull &&
       gp sync-done bundle # 'bundle' is an arbitrary name
     command: pio run -e routeur_solaire
+    
+vscode:
+  extensions:
+    - ritwickdey.LiveServer    
