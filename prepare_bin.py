@@ -14,5 +14,5 @@ def before_upload(source, target, env):
     print(destination)
     print("---------------------------------------------------------")
 
-env.AddPreAction("upload", before_upload)
+env.AddPreAction("buildprog", before_upload)
 
