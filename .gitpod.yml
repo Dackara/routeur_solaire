@@ -1,8 +1,9 @@
 tasks:
- - name: routeur_solaire_dependencies
-   init: >
-     pip3 install -U platformio &&
-     git clean -f &&
-     git fetch &&
-     git pull
-   cammand: pio run -e routeur_solaire
+  - name: routeur_solaire_dependencies
+    init: >
+      pip3 install -U platformio &&
+      git clean -f &&
+      git fetch &&
+      git pull &&
+      gp sync-done bundle # 'bundle' is an arbitrary name
+    command: pio run -e routeur_solaire
