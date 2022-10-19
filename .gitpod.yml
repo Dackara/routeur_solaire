@@ -6,7 +6,7 @@ tasks:
       git fetch &&
       git pull &&
       gp sync-done bundle # 'bundle' is an arbitrary name
-    command: pio run -e routeur_solaire
+    command: pio run -e routeur_solaire -t upload
     
 vscode:
   extensions:
