@@ -7,8 +7,8 @@ tasks:
       git pull &&
       gp sync-done bundle # 'bundle' is an arbitrary name
     command: >
-       pio run -e routeur_solaire -t buildprog -v &&
-       pio run -e routeur_solaire -t buildfs -v
+       pio run -e routeur_solaire -t buildprog  &&
+       pio run -e routeur_solaire -t buildfs 
 vscode:
   extensions:
     - ritwickdey.LiveServer    
