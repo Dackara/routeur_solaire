@@ -1,0 +1,16 @@
+{
+    "name": "esp32_code",
+    "new_install_prompt_erase": true,
+    "builds": [
+        {
+            "chipFamily": "ESP32",
+            "improv": false,
+            "parts": [
+                {
+                    "path": "spiffs.bin",
+                    "offset": 65536
+                }
+            ]
+        }
+    ]
+}
