@@ -10,7 +10,7 @@ def before_upload(source, target, env):
     destination = os.getcwd() + "/docs/bins" + "/" #+ env.get("PIOENV")
     shutil.copyfile(source + "/firmware.bin", destination + "/firmware.bin")
     shutil.copyfile(source + "/partitions.bin", destination + "/partitions.bin")
-    shutil.copyfile(source + "/spiff.bin", destination + "/spiff.bin")
+    shutil.copyfile(source + "/spiffs.bin", destination + "/spiffs.bin")
     print(source)
     print(destination)
     print("---------------------------------------------------------")
