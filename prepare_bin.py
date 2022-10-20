@@ -15,5 +15,5 @@ def before_upload(source, target, env):
     print(destination)
     print("---------------------------------------------------------")
 
-env.AddPreAction("buildfs", before_upload)
+env.AddPreAction("buildfs", before_upload)  # pio run --list-targets for all build options
 
