@@ -21,6 +21,10 @@
                 {
                     "path": "firmware.bin",
                     "offset": 65536
+                },
+                {
+                    "path": "spiffs.bin",
+                    "offset": 2686976
                 }
             ]
         }
