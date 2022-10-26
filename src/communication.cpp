@@ -407,7 +407,7 @@ void RACommunicationClass::commande_param(char *mesg)
       routeur.utilisation2Sorties = true;
     else
       routeur.utilisation2Sorties = false;
-      sortieActive = 0;
+      sortieActive = 1;
   }
 #endif
 
