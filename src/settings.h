@@ -5,17 +5,18 @@
 /********************************************/
 //#define parametrage // utiliser pour faire les essais sans les accessoires
 
-#define F50HZ   // Frequence du reseau 50Hz ou 60Hz non testé
+//**** options communes MINI & MAXI ****
 
-//**** options MINI ****
+#define F50HZ   // Frequence du reseau 50Hz ou 60Hz non testé
 #define EcranOled         // si pas d'écran oled      installer librairie heltec dev board
-#define MesureTemperature // capteur DS18B20       installer librairie dallas temperature
+//#define Ecran_inverse
+//#define MesureTemperature // capteur DS18B20       installer librairie dallas temperature
 #define WifiServer        // affiche les mesures dans une page html crée un point d'accès si pas de reseau
 #define WifiMqtt          // mettre en commentaire si pas de réseau       installer librairie ArduinoJson et PubSubClient
 #define OTA               // permet la mise à jour par OTA (over the air)
-// #define Ecran_inverse
 
-//**** options MAXI  ****
+
+//**** options spécifiques MAXI  ****
 #define Pzem04t // utilise un pzem004 pour la mesure de puissance dans le ballon  inclure  https://github.com/mandulaj/PZEM-004T-v30
 #define Sortie2 // utilise un 2eme triac
 
@@ -23,33 +24,34 @@
 const int VERBOSE = 1; // 0 pour rien , 1 pour info traceur serie, 2 pour error, 3 pour debug
 struct param
 {
-  float zeropince = -20.84;                 // valeur mesurer à zéro (2) 2819 2818.5
-  float coeffPince = 0.02475;               // Calculer le coefficient (4)0.14 0.210
-  float coeffTension = 0.02008;             // diviseur de tension
-  float seuilDemarrageBatterie = 57.20;     // seuil de mise en marche de la regulation dans le ballon
+  float zeropince = -5.9;                 // valeur mesurer à zéro (2) 2819 2818.5
+  float coeffPince = 0.02173913;   // 0.02475;               // Calculer le coefficient (4)0.14 0.210
+  float coeffTension = 0.0235;             // diviseur de tension
+  float seuilDemarrageBatterie = 54.2;     // seuil de mise en marche de la regulation dans le ballon
   float toleranceNegative = 0.8;            // autorisation de 300mA négative au moment de la charge complète
-  bool utilisation2Sorties = false;         // validation de la sortie 2eme gradateur
-  float temperatureBasculementSortie2 = 60; // température pour démarrer la regul sur la sortie 2
+  bool utilisation2Sorties = true;         // validation de la sortie 2eme gradateur
+  float temperatureBasculementSortie2 = 49; // température pour démarrer la regul sur la sortie 2
   float temperatureRetourSortie1 = 45;      // température pour rebasculer sur le premier gradateur
   bool relaisStatique = false;              // Indique si un relais statique est utilisé
-  float seuilMarche = 50;                   // température ou tension de déclenchement du relais
-  float seuilArret = 45;                    // température ou tension de déclenchement du relais
+  float seuilMarche = 49;                   // température ou tension de déclenchement du relais
+  float seuilArret = 47;                    // température ou tension de déclenchement du relais
   char tensionOuTemperature[2] = "V";       // Indique si le seuil est en Volts ou en Degrés
-  char ssid[30] = "Bbox-xxxxxxx";           // ssid de la box internet
-  char password[50] = "6557D4EFxxxxxxxx";     // mot de passe
+  char ssid[30] = "sebydocky";           // ssid de la box internet
+  char password[50] = "5D5CD57E61";     // mot de passe
                                             // en mode serveur l'ip est 192.168.4.1'
                                             // ssid , "routeur_esp32"
                                             // password , "adminesp32"
-  char mqttServer[30] = "192.168.1.18";
+  char mqttServer[30] = "192.168.1.2";
   short int mqttPort = 1883;
   char mqttUser[30] = "mosquitto";
-  char mqttPassword[50] = "!*mosquitto*!";
-  char mqttopic[30] = "sensor/solar";
-  char mqttopicInput[30] = "output/solar";
-  char mqttopicParam1[30] = "param/solar1";
-  char mqttopicParam2[30] = "param/solar2";
-  char mqttopicParam3[30] = "param/solar3";
-  char mqttopicPzem1[30] = "sensor/Pzem1";
+  char mqttPassword[50] = "mosquitto";
+  char mqttopic[30] = "routeursolaire/sensor/solar";
+  char mqttopicInput[30] = "routeursolaire/output/solar";
+  char mqttopicParam1[30] = "routeursolaire/param/solar1";
+  char mqttopicParam2[30] = "routeursolaire/param/solar2";
+  char mqttopicParam3[30] = "routeursolaire/param/solar3";
+  char mqttopicPzem1[30] = "routeursolaire/sensor/Pzem1";
+  char mqttopicActivation[30] = "routeursolaire/activation1";
   float correctionTemperature = -2.3;
   char basculementMode[2] = "T"; // Choix du mode de basculement : T->température, P-> Puissance zero
   bool actif = true;
@@ -95,6 +97,7 @@ extern bool wifiSAP;
 
 #define RXD2 18 // Pin pour le Pzem v3.0 //18
 #define TXD2 17 //17"
+#define NBTIEMQTTPUBLISH 20 //20
 
 #ifdef WifiMqtt
 #define WifiServer
