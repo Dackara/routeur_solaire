@@ -173,6 +173,8 @@ void RACommunicationClass::callback(char *topic, byte *message, unsigned int len
     RACommunication.commande_param(messageTemp);
   }
   else if (strcmp(topic, "router/activation") == 0)
+  //else if (strcmp(topic, "routeursolaire/activation") == 0)
+  //else if (strcmp(topic, routeur.mqttopicActivation) == 0)
   {
     routeur.actif = strcmp(messageTemp, "1") == 0 ? true : false;
     if (routeur.actif)
@@ -194,6 +196,9 @@ void RACommunicationClass::mqtt_subscribe()
   {
     clientMqtt.subscribe(routeur.mqttopicInput);
     clientMqtt.subscribe("router/activation");
+    //clientMqtt.subscribe("routeursolaire/activation");
+    //clientMqtt.subscribe(routeur.mqttopicActivation);
+    
   }
 }
 
@@ -205,7 +210,7 @@ void RACommunicationClass::mqtt_publish(int a)
     affpub = 30; // forcage de l'envoie
   }
   affpub++;
-  if (affpub < 20)
+  if (affpub < NBTIEMQTTPUBLISH)   //20
   {
     return;
   }
@@ -402,6 +407,7 @@ void RACommunicationClass::commande_param(char *mesg)
       routeur.utilisation2Sorties = true;
     else
       routeur.utilisation2Sorties = false;
+      sortieActive = 0;
   }
 #endif
 
@@ -444,7 +450,8 @@ void RACommunicationClass::commande_param(char *mesg)
 #ifndef MesureTemperature
   if (strcmp(msg, "tem") == 0) // reception ex: "tem60" indique que le ballon est a 60 degrés
   {
-    int com = mesg.substring(3).toInt();
+    int com = (int)atof(value);
+ //   int com = mesg.substring(3).toInt();
     temperatureEauChaude = com;
   }
 #endif
