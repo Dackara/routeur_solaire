@@ -299,13 +299,14 @@ void RACommunicationClass::mqtt_publish(int a)
   }
   doc3.clear();
 
-  StaticJsonDocument<JSON_OBJECT_SIZE(8)> doc4;
+  StaticJsonDocument<JSON_OBJECT_SIZE(9)> doc4;
   doc4["sortieRelaisTemp"] = (routeur.relaisStatique && (routeur.tensionOuTemperature[0] == 'D'));
   doc4["sortieRelaisTens"] = (routeur.relaisStatique && (routeur.tensionOuTemperature[0] == 'V'));
   doc4["relaisMax"] = routeur.seuilMarche;
   doc4["relaisMin"] = routeur.seuilArret;
   doc4["Forcage_1h"] = marcheForcee;
   doc4["version"] = versionsoft;
+  doc4["utilisationPinceAC"] =  routeur.utilisationPinceAC;
   doc4["seuilCoupureAC"] = routeur.seuilCoupureAC;
   doc4["coeffMesureAc"] = routeur.coeffMesureAc;
 
@@ -410,6 +411,15 @@ void RACommunicationClass::commande_param(char *mesg)
       sortieActive = 1;
   }
 #endif
+  
+  if (strcmp(msg, "aca") == 0) // reception ex: "aca1"  ou "aca0"  activiation/désactivation de la pince ac
+  {
+    float com = atof(value);
+    if (com == 1)
+      routeur.utilisationPinceAC = true;
+    else
+      routeur.utilisationPinceAC = false;
+  }
 
   if (strcmp(msg, "cmf") == 0) // reception ex: "cmf1"  ou "cmf0"  pour la commande de la marche forcee
   {
