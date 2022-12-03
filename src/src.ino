@@ -6,7 +6,7 @@
 // un ballon d'eau chaude
 //**************************************************************/
 
-const char *version_soft = "Version 1.5";
+const char *version_soft = "Version 1.6";
 
 //**************************************************************/
 // Initialisation
