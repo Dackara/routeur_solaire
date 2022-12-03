@@ -124,7 +124,7 @@ Une connexion au wifi est obligatoire (cf. Serveur web)
 | mqttopicInput  |   settings.h    |  "output/solar" | *Pilotage à distance, voir le chapitre de pilotage* |
 | mqttopicParam1  |   settings.h    |  "param/solar1" | Récupération zeropince-coeffPince-coeffTension-seuilTension-toleranceNeg-actif|
 | mqttopicParam2  |   settings.h    |   "param/solar2" |Récupération sortie2-sortie2_tempHaut-sortie2_tempBas-temporisation-sortieActive |
-| mqttopicParam3  |   settings.h    | "param/solar3"  | Récupération sortieRelaisTemp-sortieRelaisTens-relaisMax-relaisMin-Forcage_1h-version-seuilCoupureAC-coeffMesureAc|
+| mqttopicParam3  |   settings.h    | "param/solar3"  | Récupération sortieRelaisTemp-sortieRelaisTens-relaisMax-relaisMin-Forcage_1h-version-utilisationPinceAC-seuilCoupureAC-coeffMesureAc|
 | mqttopicPzem1  |   settings.h    |  "sensor/Pzem1" | Récupération pzem infos : Intensite-Tension-Puissance-Energie-Cosf|
 
 Pour piloter l'ESP à distance, il est possible d'envoyer des infos via mqt, sur le topic défini via la variable **mqttopicInput** (par défaut = output/solar)
@@ -138,6 +138,7 @@ Pour piloter l'ESP à distance, il est possible d'envoyer des infos via mqt, sur
 | rthX  |  Changement du relais tension haut par la valeur X (X est un nombre, ex: rth51)
 | rtbX  |  Changement du relais tension bas par la valeur X (X est un nombre, ex: rtb51)
 | sorX  |  Changement de la réception de sortie pour la commande du 2eme gradateur (X=0 ou X=1)
+| acaX  |  Changement de l'utilisation de la pinceAC (aca1 pour activation ou aca0 pour désactivation)
 | cmfX  |  Changement de la marche forcée - 1 pour l'activer, 0 pour l'arreter (X=0 ou X=1)
 | rmfX  |  Changement du ratio de la marche force, en % (ex : rfm25)
 | tmpX  |  Changement du temps de la marche forcée, en minutes (ex: tmp60)
