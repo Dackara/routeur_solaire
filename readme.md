@@ -66,7 +66,7 @@ Explication de corrections mineures
 | correctionTemperature  |   settings.h    | -2.3 | |
 | basculementMode  |   settings.h   | "T" |  Choix du mode de basculement : T->température, P-> Puissance zero|
 | actif  |   settings.h   | true | permet d'activer ou désactiver le système
-| utilisationPinceAC  |   settings.h   | true | Utilisation d'une Pince pour la mesure AC
+| utilisationPinceAC  |   settings.h   | false | Utilisation d'une Pince pour la mesure AC
 | seuilCoupureAC  |   settings.h   | 0.3 | Seuil de coupure pour la pince AC
 | coeffMesureAc  |   settings.h   | 0.321 | Coeff de mesure de la pince AC
 
