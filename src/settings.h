@@ -36,8 +36,8 @@ struct param
   float seuilMarche = 49;                   // température ou tension de déclenchement du relais
   float seuilArret = 47;                    // température ou tension de déclenchement du relais
   char tensionOuTemperature[2] = "V";       // Indique si le seuil est en Volts ou en Degrés
-  char ssid[30] = "sebydocky";           // ssid de la box internet
-  char password[50] = "5D5CD57E61";     // mot de passe
+  char ssid[30] = "xxxxxxxxxxx";           // ssid de la box internet
+  char password[50] = "yyyyyyyyyyyy";     // mot de passe
                                             // en mode serveur l'ip est 192.168.4.1'
                                             // ssid , "routeur_esp32"
                                             // password , "adminesp32"
