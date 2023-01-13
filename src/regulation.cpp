@@ -1,24 +1,61 @@
 /***************************************/
 /******** pilotage et regulation   ********/
 /***************************************/
+
 #include "regulation.h"
 #include "mesure.h"
 #include "settings.h"
 #include <Arduino.h>
-float xmax = 0;
-float xmin = 0;
-int devlente = 0;
-int devdecro = 0;
+
+#define variation_lente         1     // config 5
+#define variation_normale       10    // config 10
+#define variation_rapide        20    // config 20
+#define bridePuissance          900   // sur 1000
+#define coeff_variation_lente   1
+#define coeff_variation_normale 1
+#define coeff_variation_rapide  2
+
+#define nbineg                        5
+#ifndef utilisation_seuil_intensiteBatterie_bas
+#define seuil_intensiteBatterie_bas   0
+#endif
+#ifndef utilisation_seuil_intensiteBatterie_moyen
+#define seuil_intensiteBatterie_moyen 2
+#endif
+
+
+#define coefficient_puisGradmax       0.8
+#define coefficient_calPuis           0.5
+
+#define ineg_max                      1000
+#define offset_seuilDemarrageBatterie_high 0.2
+#define offset_seuilDemarrageBatterie_low -0.5
+
+#define tabmin_size                    10
+#define coeff_seuil_deltaxmin          10
+#define coeff_marcheForceePercentage   9
+#define offset_tempdepart              60000     // 60000ms = 60s
+#define coeff_puissanceGradateur_step0 0
+#define coeff_puissanceGradateur_step1 350
+#define coeff_puissanceGradateur_step2 450
+#define coeff_puissanceGradateur_step3 550
+#define coeff_puissanceGradateur_step4 650
+#define coeff_puissanceGradateur_step5 900
+
+float xmax      = 0;
+float xmin      = 0;
+int devlente    = 0;
+int devdecro    = 0;
 float tabxmin[] = {0, 0, 0, 0, 0, 0, 0, 0, 0, 0};
-int itab = 0;
+int itab        = 0;
 
 int RARegulationClass::mesureDerive(float x, float seuil)
 {
-  int dev = 0;
+  int dev  = 0;
   devlente = 0;
   if (x > xmax)
   {
-    dev = 1;
+    dev  = 1;
     xmax = x;
     xmin = xmax - seuil;
 
@@ -26,27 +63,27 @@ int RARegulationClass::mesureDerive(float x, float seuil)
 
   if (x < xmin)
   {
-    dev = -1;
+    dev  = -1;
     xmin = x;
     xmax = xmin + seuil;
-    for (int i = 0; i < 9; i++)
+    for (int i = 0 ; i < (tabmin_size - 1); i++)
     {
-      tabxmin[9 - i] = tabxmin[8 - i];
+      tabxmin[(tabmin_size - 1) - i] = tabxmin[(tabmin_size - 2) - i];
     }
     tabxmin[0] = xmin; // range les valeurs mini
     float deltaxmin = 0;
     // float xminmoy = tabxmin[0];
 
-    for (int i = 1; i < 10; i++)
+    for (int i = 1; i < tabmin_size; i++)
     {
       deltaxmin += tabxmin[i] - tabxmin[0];
     } // calcule la pente négative
 
-    if (itab < 10)
+    if (itab < tabmin_size)
     {
       itab++; // retire les 10 premiers points avant de calculer
     }
-    if ((itab >= 10) && (deltaxmin > 10 * seuil))
+    if ((itab >= tabmin_size) && (deltaxmin > coeff_seuil_deltaxmin * seuil))
     {
       devlente = 1;
     }
@@ -58,131 +95,91 @@ int RARegulationClass::mesureDerive(float x, float seuil)
   return dev;
 }
 
-int calPuis = 0;
-int calPuisav = 0;
-int ineg = 0;
+int calPuis     = 0;
+int calPuisav   = 0;
+int ineg        = 0;
 int devprevious = 0;
-int devcount = 0;
+int devcount    = 0;
 int puisGradmax = 0;
-int tesTension = 0;
-int chargecomp = 0;
-#define variation_lente 1    // config 5
-#define variation_normale 10 // config 10
-#define variation_rapide 20  // config 20
-#define bridePuissance 900   // sur 1000
-
-int testpmax = 0;
+int tesTension  = 0;
+int chargecomp  = 0;
+int testpmax    = 0;
 
 int RARegulationClass::regulGrad(int dev)
 {
   calPuisav = calPuis;
-  /*if (testpmax<500) testpmax++;
-  else {
-        if ((intensiteBatterie<2) && (intensiteBatterie>-routeur.toleranceNegative))
-            {
-              int savPuis=puissanceGradateur;
-              while (intensiteBatterie>-routeur.toleranceNegative)
-              {
-                puissanceGradateur++;
-                RAMesure.mesurePinceTension(700, 20);
-              }
-              puisGradmax=puissanceGradateur;
-             puissanceGradateur=savPuis;
-            }
-        testpmax=0;
-        }
-     */
-  // décalage du courant pour maintenir la regulation proche de zéro
-  /*
-  if ((intensiteBatterie < 0) && (intensiteBatterie > -routeur.toleranceNegative))
-          {
-            intensiteBatterie = intensiteBatterie + routeur.toleranceNegative;   //correction des mesures proche de zéro
-          }
-
-   if (intensiteBatterie < 0)   devcount = 0;
-   if (devprevious == dev)
-          {
-            if (devcount < 100)  devcount++; // si deviation dans le même sens
-          } else  devcount = 0;
-
- //  courant constant
-  if (dev == 0)
-  {
-    calPuis += variation_lente;  // demarrage
-    if (devcount > 3)  calPuis += variation_normale; // accélération
-     if ((devcount > 7) && (calPuis < puisGradmax - 50)) // accélération jusque la puissance maxi
-            calPuis += variation_rapide;
-  }
  
- // courant croissant 
-   if (dev > 0)
-  {
-    calPuis += variation_lente;
-    if (devcount > 3)  calPuis += variation_normale;
-    if ((devcount > 7) && (calPuis < puisGradmax)) calPuis += variation_rapide;
-  }
-  
- // courant décroissant
-  if (dev < 0) 
-  {
-    // fin de charge 
-    if (intensiteBatterie < 2)
-        {
-          calPuis -= variation_normale + variation_lente;
-        }
-    else
-        {
-          calPuis -= variation_rapide + variation_lente;
-        }
-     
-    if (devcount > 2) calPuis -= variation_normale; // accélération de la descente
- 
-    if ((devcount > 5) && (intensiteBatterie > 2)) calPuis -= variation_rapide;
-  }*/
-
   // descente réguliere lente
-  if ((devlente == 1) && (intensiteBatterie > 0))
+  #ifdef utilisation_seuil_intensiteBatterie_bas
+  if ((devlente == 1) && (intensiteBatterie > routeur.sib)) 
+  #else  
+  if ((devlente == 1) && (intensiteBatterie > seuil_intensiteBatterie_bas))
+  #endif
   {
-    if (intensiteBatterie > 2)
+#ifdef utilisation_seuil_intensiteBatterie_moyen
+    if (intensiteBatterie > routeur.sim) 
+#else     
+    if (intensiteBatterie > seuil_intensiteBatterie_moyen)
+#endif    
     {
-      calPuis -= 2 * variation_rapide; //descente brutale
+      calPuis -= coeff_variation_rapide * variation_rapide; //descente brutale
     }
     else
     {
-      calPuis -= variation_lente; // fin de charge descente lente
+      calPuis -= coeff_variation_lente * variation_lente; // fin de charge descente lente
     }
   }
   else
-    calPuis += variation_lente; // autorise la montée si la pente n'est pas descendante
+    calPuis += coeff_variation_lente * variation_lente; // autorise la montée si la pente n'est pas descendante
 
   // courant varie mais reste globalement constant permet le décollage
   if (devlente == 0)
   {
-    if (intensiteBatterie >= 2)
+#ifdef utilisation_seuil_intensiteBatterie_moyen    
+    if (intensiteBatterie >= routeur.sim ) 
+#else   
+    if (intensiteBatterie >= seuil_intensiteBatterie_moyen )
+#endif
     {
       chargecomp = 0;
-      calPuis += variation_normale;
+      calPuis   += coeff_variation_normale * variation_normale;
     }
-    if ((intensiteBatterie < 2) && (intensiteBatterie >= 0))
+#ifdef utilisation_seuil_intensiteBatterie_bas && utilisation_seuil_intensiteBatterie_moyen    
+    if ( (intensiteBatterie >= routeur.sib) && (intensiteBatterie < routeur.sim) ) //  if ( (intensiteBatterie >= seuil_intensiteBatterie_bas) && (intensiteBatterie < seuil_intensiteBatterie_moyen) )
+#elif utilisation_seuil_intensiteBatterie_bas
+    if ( (intensiteBatterie >= routeur.sib) && (intensiteBatterie < seuil_intensiteBatterie_moyen) )
+#elif utilisation_seuil_intensiteBatterie_moyen 
+    if ( (intensiteBatterie >= seuil_intensiteBatterie_bas) && (intensiteBatterie < routeur.sim) )
+#else 
+    if ( (intensiteBatterie >= seuil_intensiteBatterie_bas) && (intensiteBatterie < seuil_intensiteBatterie_moyen) )
+#endif
+        
     {
       chargecomp = 1;
-      calPuis += variation_normale;
+      calPuis   += coeff_variation_normale * variation_normale;
     }
-    if ((intensiteBatterie < 0) && (intensiteBatterie >= -routeur.toleranceNegative))
+#ifdef utilisation_seuil_intensiteBatterie_bas    
+    if ((intensiteBatterie < routeur.sib) && (intensiteBatterie >= -routeur.toleranceNegative)) 
+#else
+    if ((intensiteBatterie < seuil_intensiteBatterie_bas) && (intensiteBatterie >= -routeur.toleranceNegative))
+#endif
     {
       chargecomp = 1;
     }
   }
-
-  if ((intensiteBatterie < 0) && (intensiteBatterie >= -routeur.toleranceNegative))
+#ifdef utilisation_seuil_intensiteBatterie_bas
+  if ((intensiteBatterie < routeur.sib) && (intensiteBatterie >= -routeur.toleranceNegative)) 
+#else 
+  if ((intensiteBatterie < seuil_intensiteBatterie_bas) && (intensiteBatterie >= -routeur.toleranceNegative)) 
+#endif  
   {
-    calPuis += variation_lente;
+    calPuis += coeff_variation_lente*variation_lente;
   }
 
   // mesure de la puissance maximum pour le remonter en puissance
-  if (calPuis < (8 * puisGradmax / 10))
+  if (calPuis < coefficient_puisGradmax * puisGradmax)
   {
-    calPuis += variation_normale;
+    calPuis += coeff_variation_normale * variation_normale;
   }
   puisGradmax = calPuis;
 
@@ -190,20 +187,24 @@ int RARegulationClass::regulGrad(int dev)
   if (intensiteBatterie < -routeur.toleranceNegative)
   {
     if (chargecomp == 0)
-      calPuis = calPuis / 2;
+      calPuis = coefficient_calPuis * calPuis;
     else
-      calPuis -= variation_normale;
-    if ((ineg < 1000) && (intensiteBatterie < 0))
+      calPuis -= coeff_variation_normale * variation_normale;
+#ifdef utilisation_seuil_intensiteBatterie_bas      
+    if ((ineg < ineg_max) && (intensiteBatterie < routeur.sib))
+#else     
+    if ((ineg < ineg_max) && (intensiteBatterie < seuil_intensiteBatterie_bas))
+#endif    
     {
       ineg++;
       //puisGradmax = calPuis-2*variation_rapide;
       if (intensiteBatterie < -routeur.toleranceNegative)
-        calPuis -= variation_normale;
+        calPuis -= coeff_variation_normale * variation_normale;
     }             //else while(calPuis>0) { calPuis--; delay(10); }
-    if (ineg > 5) // autorisation de 5 mesures négatives avec baisse régulière
+    if (ineg > nbineg) // autorisation de nbineg mesures négatives avec baisse régulière
     {
-      puisGradmax = 8 * puisGradmax / 10;
-      calPuis -= 2 * variation_rapide;
+      puisGradmax = coefficient_puisGradmax * puisGradmax;
+      calPuis    -= coeff_variation_rapide * variation_rapide;
     } // tolerance pic négatif
   }
   else
@@ -214,23 +215,38 @@ int RARegulationClass::regulGrad(int dev)
   devprevious = dev;
 
   // seuil de démarrage
-  if (capteurTension > routeur.seuilDemarrageBatterie + 0.2)
+  if (capteurTension > routeur.seuilDemarrageBatterie + offset_seuilDemarrageBatterie_high)
     tesTension = 1;
   // seuil bas de batterie
-  if (capteurTension < routeur.seuilDemarrageBatterie - 0.5)
+  if (capteurTension < routeur.seuilDemarrageBatterie + offset_seuilDemarrageBatterie_low)
     tesTension = 0;
   if (tesTension == 0)
     calPuis = 0;
 
-  calPuis = min(max(0, calPuis), bridePuissance);
+  if(sortieActive== 0){
+#ifdef utilisation_bridesortie1    
+    calPuis = min(max(0, calPuis), routeur.bridesortie1); 
+ #else
+    calPuis = min(max(0, calPuis), bridePuissance);
+ #endif   
+  }
+  else {
+#ifdef utilisation_bridesortie2    
+    calPuis = min(max(0, calPuis), routeur.bridesortie2);
+#else
+    calPuis = min(max(0, calPuis), bridePuissance);
+ #endif   
+  }
+  //calPuis = min(max(0, calPuis), bridePuissance);
   return (calPuis);
 }
 
 /**************************************/
 /******** Pilotage exterieur*******/
 /**************************************/
+
 unsigned long tempdepart;
-int tempo = 0;
+int tempo  = 0;
 int tempo2 = 0;
 extern int calPuis;
 
@@ -241,23 +257,23 @@ void RARegulationClass::pilotage()
 #ifdef Sortie2
   if (routeur.utilisation2Sorties)
   {
-    if ((temperatureEauChaude > routeur.temperatureBasculementSortie2) && (choixSortie == 0))
+    if ((temperatureEauChaude >= routeur.temperatureBasculementSortie2) && (choixSortie == 0)) // on teste bien qu'on était sur la première sortie également
     {
-      choixSortie = 1;
-      sortieActive = 2;
+      choixSortie  = 1;   // on bascule sur la 2ieme sortie
+      sortieActive = 2;   // et mets à jour le numéro de la sortie active
     }
     // commande du gradateur2
     if ((temperatureEauChaude < routeur.temperatureRetourSortie1) && (choixSortie == 1) && (tempo2 == 0))
     {
-      choixSortie = 0;
+      choixSortie  = 0;
       sortieActive = 1;
     }
     // commande du gradateur1
   }
   else
   {
-    choixSortie = 0;
-    sortieActive = 1;
+    choixSortie    = 0;
+    sortieActive   = 1;
   }
 #endif
 
@@ -290,16 +306,16 @@ void RARegulationClass::pilotage()
 
     if (tempo2 > 10)
     {
-      choixSortie = 1;
+      choixSortie  = 1;
       sortieActive = 2;
       tempo2++;
     } // après 2s avec i=0 bascule sur triac2
     if (tempo2 > 200)
     {
-      choixSortie = 0;
+      choixSortie  = 0;
       sortieActive = 1;
-      tempo2 = 0;
-      calPuis = 0;
+      tempo2       = 0;
+      calPuis      = 0;
     } // après qques minutes bascule sur 1er triac
   }
 #endif
@@ -318,44 +334,46 @@ void RARegulationClass::pilotage()
       etatRelaisStatique = false;
     }
   }
+  
   if ((marcheForcee) && (tempo == 0))
   {
     tempdepart = millis(); //  memorisation de moment de depart
-    tempo = 1;
+    tempo      = 1;
   }
+  
   if ((marcheForcee) && (tempo == 1))
   {
     if (marcheForceePercentage == 0)
     {
-      puissanceGradateur = 0;
+      puissanceGradateur = coeff_puissanceGradateur_step0;
     }
     else if (marcheForceePercentage == 20)
     {
-      puissanceGradateur = 350;
+      puissanceGradateur = coeff_puissanceGradateur_step1;
     }
     else if (marcheForceePercentage == 40)
     {
-      puissanceGradateur = 450;
+      puissanceGradateur = coeff_puissanceGradateur_step2;
     }
     else if (marcheForceePercentage == 60)
     {
-      puissanceGradateur = 550;
+      puissanceGradateur = coeff_puissanceGradateur_step3;
     }
     else if (marcheForceePercentage == 80)
     {
-      puissanceGradateur = 650;
+      puissanceGradateur = coeff_puissanceGradateur_step4;
     }
     else if (marcheForceePercentage == 100)
     {
-      puissanceGradateur = 900;
+      puissanceGradateur = coeff_puissanceGradateur_step5;
     }
     else
     {
-      puissanceGradateur = marcheForceePercentage * 9;
+      puissanceGradateur = coeff_marcheForceePercentage * marcheForceePercentage ;
     }
 
     calPuis = puissanceGradateur;
-    if (millis() > tempdepart + 60000)
+    if (millis() > tempdepart + offset_tempdepart )
     { // decremente toutes les minutes
       tempdepart = millis();
       temporisation--;
@@ -375,8 +393,8 @@ void RARegulationClass::desactivation()
   digitalWrite(pinSortie2, LOW); // mise à zéro du triac de la sortie 2
   digitalWrite(pinRelais, LOW);  // mise à zéro du relais statique
   puissanceGradateur = 0;
-  temporisation = 0;
-  marcheForcee = false;
+  temporisation      = 0;
+  marcheForcee       = false;
 }
 
 RARegulationClass RARegulation;

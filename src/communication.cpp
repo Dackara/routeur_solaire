@@ -249,14 +249,27 @@ void RACommunicationClass::mqtt_publish(int a)
     return;
 
   //   char buffer[150];
-  //Exportation des données en trame JSON via MQTT
-  StaticJsonDocument<JSON_OBJECT_SIZE(6)> doc2;
+  //Exportation des données en trame JSON via MQTT   #ifdef utilisation_seuil_intensiteBatterie_bas
+#ifdef utilisation_seuil_intensiteBatterie_bas && utilisation_seuil_intensiteBatterie_moyen
+  const int offset2 = 2;
+#elif utilisation_seuil_intensiteBatterie_bas || utilisation_seuil_intensiteBatterie_moyen
+  const int offset2 = 1;
+#else 
+  const int offset2 = 0;
+#endif
+  StaticJsonDocument<JSON_OBJECT_SIZE(6+offset2)> doc2;
   doc2["zeropince"] = routeur.zeropince;
   doc2["coeffPince"] = routeur.coeffPince;
   doc2["coeffTension"] = routeur.coeffTension;
   doc2["seuilTension"] = routeur.seuilDemarrageBatterie;
   doc2["toleranceNeg"] = routeur.toleranceNegative;
   doc2["actif"] = routeur.actif;
+#ifdef utilisation_seuil_intensiteBatterie_bas
+  doc2["sib"] = routeur.sib;
+#endif
+#ifdef utilisation_seuil_intensiteBatterie_moyen
+  doc2["sim"] = routeur.sim;
+#endif
   n = serializeJson(doc2, buffer); // calcul de la taille du json
   buffer[n - 1] = '}';
   buffer[n] = 0; // fermeture de la chaine json
@@ -273,14 +286,29 @@ void RACommunicationClass::mqtt_publish(int a)
     }
   }
   doc2.clear();
-  const int capacity = JSON_OBJECT_SIZE(5); // 5 données maxi dans json
 
+#ifdef utilisation_bridesortie1 && utilisation_bridesortie2
+  const int offset3 = 2;
+#elif utilisation_bridesortie1 || utilisation_bridesortie2
+  const int offset3 = 1;
+#else 
+  const int offset3 = 0;
+#endif
+
+  const int capacity = JSON_OBJECT_SIZE(5+offset3); // 5 données maxi dans json
   StaticJsonDocument<capacity> doc3;
   doc3["sortie2"] = routeur.utilisation2Sorties;
   doc3["sortie2_tempHaut"] = routeur.temperatureBasculementSortie2;
   doc3["sortie2_tempBas"] = routeur.temperatureRetourSortie1;
   doc3["temporisation"] = temporisation;
   doc3["sortieActive"] = sortieActive;
+  
+  #ifdef utilisation_bridesortie1
+  doc3["bridesortie1"] = routeur.bridesortie1;
+  #endif
+  #ifdef utilisation_bridesortie1
+  doc3["bridesortie2"] = routeur.bridesortie2;
+  #endif
 
   n = serializeJson(doc3, buffer); // calcul de la taille du json
   buffer[n - 1] = '}';
@@ -299,14 +327,23 @@ void RACommunicationClass::mqtt_publish(int a)
   }
   doc3.clear();
 
-  StaticJsonDocument<JSON_OBJECT_SIZE(9)> doc4;
+  
+  #ifdef controlepinceAC
+   StaticJsonDocument<JSON_OBJECT_SIZE(9)> doc4;
+  #else
+   StaticJsonDocument<JSON_OBJECT_SIZE(8)> doc4;
+  #endif
+//  StaticJsonDocument<JSON_OBJECT_SIZE(8+offset)> doc4;
+
   doc4["sortieRelaisTemp"] = (routeur.relaisStatique && (routeur.tensionOuTemperature[0] == 'D'));
   doc4["sortieRelaisTens"] = (routeur.relaisStatique && (routeur.tensionOuTemperature[0] == 'V'));
   doc4["relaisMax"] = routeur.seuilMarche;
   doc4["relaisMin"] = routeur.seuilArret;
   doc4["Forcage_1h"] = marcheForcee;
   doc4["version"] = versionsoft;
+  #ifdef controlepinceAC
   doc4["utilisationPinceAC"] =  routeur.utilisationPinceAC;
+  #endif
   doc4["seuilCoupureAC"] = routeur.seuilCoupureAC;
   doc4["coeffMesureAc"] = routeur.coeffMesureAc;
 
@@ -334,10 +371,10 @@ void RACommunicationClass::mqtt_publish(int a)
                                      //  char buffer[400];
   //Exportation des données en trame JSON via MQTT
   doc5["Intensite"] = Pzem_i;
-  doc5["Tension"] = Pzem_U;
+  doc5["Tension"]   = Pzem_U;
   doc5["Puissance"] = Pzem_P;
-  doc5["Energie"] = Pzem_W;
-  doc5["Cosf"] = 0;
+  doc5["Energie"]   = Pzem_W;
+  doc5["Cosf"]      = 0;
 
   n = serializeJson(doc5, buffer); // calcul de la taille du json
   buffer[n - 1] = '}';
@@ -411,7 +448,8 @@ void RACommunicationClass::commande_param(char *mesg)
       sortieActive = 1;
   }
 #endif
-  
+
+#ifdef controlepinceAC  
   if (strcmp(msg, "aca") == 0) // reception ex: "aca1"  ou "aca0"  activiation/désactivation de la pince ac
   {
     float com = atof(value);
@@ -420,6 +458,21 @@ void RACommunicationClass::commande_param(char *mesg)
     else
       routeur.utilisationPinceAC = false;
   }
+#endif
+
+#ifdef utilisation_bridesortie1 
+  if (strcmp(msg, "1br") == 0) // reception ex: "1brxxx" pour brider la sortie 1 à la valeur maximum xxx
+  {
+    routeur.bridesortie1 = int(atof(value));
+  }
+#endif
+
+#ifdef utilisation_bridesortie2 
+  if (strcmp(msg, "2br") == 0) // reception ex: "2brxxx" pour brider la sortie 2 à la valeur maximum xxx
+  {
+    routeur.bridesortie2 = int(atof(value));
+  }
+#endif
 
   if (strcmp(msg, "cmf") == 0) // reception ex: "cmf1"  ou "cmf0"  pour la commande de la marche forcee
   {
@@ -463,6 +516,18 @@ void RACommunicationClass::commande_param(char *mesg)
     int com = (int)atof(value);
  //   int com = mesg.substring(3).toInt();
     temperatureEauChaude = com;
+  }
+#endif
+#ifdef utilisation_seuil_intensiteBatterie_bas
+  if (strcmp(msg, "sib") == 0) // reception ex: "tem60" indique que le ballon est a 60 degrés
+  {
+    routeur.sib = (int)atof(value);
+  }
+#endif
+#ifdef utilisation_seuil_intensiteBatterie_moyen 
+  if (strcmp(msg, "sim") == 0) // reception ex: "tem60" indique que le ballon est a 60 degrés
+  {
+    routeur.sim = (int)atof(value);
   }
 #endif
   paramchange = 1;
@@ -622,8 +687,11 @@ void RACommunicationClass::getSettings(WiFiClient clientWifi)
   doc["settings"]["systemSettings"]["version"]["value"] = versionsoft;
   doc["settings"]["systemSettings"]["utilisationSAP"]["value"] = routeur.utilisationSAP;
   doc["settings"]["communicationSettings"]["rssi"] = WiFi.RSSI();
-
+  /*
+  #ifdef controlepinceAC
   doc["settings"]["userSettings"]["utilisationPinceAC"]["value"] = routeur.utilisationPinceAC;
+  #endif
+  */
   doc["settings"]["userSettings"]["seuilCoupureAC"]["value"] = routeur.seuilCoupureAC;
   doc["settings"]["userSettings"]["coeffMesureAc"]["value"] = routeur.coeffMesureAc;
   doc["settings"]["systemSettings"]["mesureAc"]["value"] = mesureAc;
