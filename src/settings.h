@@ -8,24 +8,36 @@
 //**** options communes MINI & MAXI ****
 
 #define F50HZ   // Frequence du reseau 50Hz ou 60Hz non testé
-#define EcranOled         // si pas d'écran oled      installer librairie heltec dev board
+//#define EcranOled         // si pas d'écran oled      installer librairie heltec dev board
 //#define Ecran_inverse
 //#define MesureTemperature // capteur DS18B20       installer librairie dallas temperature
 #define WifiServer        // affiche les mesures dans une page html crée un point d'accès si pas de reseau
-#define WifiMqtt          // mettre en commentaire si pas de réseau       installer librairie ArduinoJson et PubSubClient
+#define WifiMqtt          // mettre en commentaire si pas de réseau   installer librairie ArduinoJson et PubSubClient
 #define OTA               // permet la mise à jour par OTA (over the air)
-//#define Pballon           3000 // 1000W puissance du ballon
+#define utilisation_seuil_intensiteBatterie_bas        // permet de modifier la valeur basse d'intensité dans la régulation
+#define utilisation_seuil_intensiteBatterie_moyen      // permet de modifier la valeur moyenned'intensité dans la régulation
+#define PMAXSORTIE1 3000.0                             // puissance maximale en W de la sortie1
 
 //**** options spécifiques MAXI  ****
 #define Pzem04t                     // utilise un pzem004 pour la mesure de puissance dans le ballon  inclure  https://github.com/mandulaj/PZEM-004T-v30
 #define Sortie2                     // utilise un 2eme triac
-#define controlepinceAC                                // permet le contrôle de l'utilisation PinceAC
-#define utilisation_bridesortie1                       // permet de modifier la valeur max de gradaition de la sortie 1
-#define utilisation_bridesortie2                       // permet de modifier la valeur max de gradaition de la sortie 2
-#define utilisation_seuil_intensiteBatterie_bas        // permet de modifier la valeur basse d'intensité dans la régulation
-#define utilisation_seuil_intensiteBatterie_moyen      // permet de modifier la valeur moyenned'intensité dans la régulation
+#define controlepinceAC             // permet le contrôle de l'utilisation PinceAC
+#define utilisation_bridesortie1    // permet de modifier la valeur max de gradaition de la sortie 1
+#define utilisation_bridesortie2    // permet de modifier la valeur max de gradaition de la sortie 2
 
-const int VERBOSE = 1; // 0 pour rien , 1 pour info traceur serie, 2 pour error, 3 pour debug
+
+//////////////////////// paramètres généraux /////////////////////
+#ifdef Pzem04t
+#define RXD2 18 // Pin pour le Pzem v3.0 //18
+#define TXD2 17 //17"
+#endif
+#ifdef Sortie2
+#define PMAXSORTIE2 2400.0          // puissance maximale en W de la sortie2
+#endif
+#define NBTIEMQTTPUBLISH 3          //3 <=> refresh every 8s, 20 <=> refresh every 80s
+
+
+const int VERBOSE = 0; // 0 pour rien , 1 pour info traceur serie, 2 pour error, 3 pour debug
 struct param
 {
   float zeropince                     = -5.9; // -5.9;                 // valeur mesurer à zéro (2) 2819 2818.5
@@ -40,8 +52,8 @@ struct param
   float seuilMarche                   = 49;                   // température ou tension de déclenchement du relais
   float seuilArret                    = 47;                    // température ou tension de déclenchement du relais
   char tensionOuTemperature[2]        = "V";       // Indique si le seuil est en Volts ou en Degrés
-  char ssid[30]                       = "xxxxxxxx";           // ssid de la box internet
-  char password[50]                   = "yyyyyyyy";     // mot de passe
+  char ssid[30]                       = "sebydocky";           // ssid de la box internet
+  char password[50]                   = "5D5CD57E61";     // mot de passe
                                             // en mode serveur l'ip est 192.168.4.1'
                                             // ssid , "routeur_esp32"
                                             // password , "adminesp32"
@@ -57,14 +69,16 @@ struct param
   char mqttopicPzem1[30]              = "routeursolaire/sensor/Pzem1";
   char mqttopicActivation[30]         = "routeursolaire/activation1";
   float correctionTemperature         = -2.3;
-  char basculementMode[2]             = "T"; // Choix du mode de basculement : T->température, P-> Puissance zero
-  bool actif                          = false;               // Routeur actif au démarrage
-  float seuilCoupureAC                = 0.3;      // Seuil de coupure pour la pince AC
-  float coeffMesureAc                 = 0.321;     // Coeff de mesure de la pince AC
-  bool utilisationPinceAC             = false;     // Utilisation d'une Pince pour la mesure AC
-  bool utilisationSAP                 = false;     // Utilisation du SAP uniquement
-  float Pmaxsortie1                   = 3000.0;      // Puissance max sortie1 ( ballon ECS 3000W )
-  float Pmaxsortie2                   = 2400.0;      // Puissance max sortie2 ( résistance géothermis 2400W)
+  char basculementMode[2]             = "T";          // Choix du mode de basculement : T->température, P-> Puissance zero
+  bool actif                          = false;        // Routeur actif au démarrage
+  float seuilCoupureAC                = 0.3;          // Seuil de coupure pour la pince AC
+  float coeffMesureAc                 = 0.321;        // Coeff de mesure de la pince AC
+  bool utilisationPinceAC             = false;        // Utilisation d'une Pince pour la mesure AC
+  bool utilisationSAP                 = false;        // Utilisation du SAP uniquement
+  float Pmaxsortie1                   = PMAXSORTIE1;  // Puissance max sortie1 (définie par #define PMAXSORTIE1 plus haut)
+#ifdef Sortie2  
+  float Pmaxsortie2                   = PMAXSORTIE2;  // Puissance max sortie2 (définie par #define PMAXSORTIE2 plus haut)
+#endif
 #ifdef utilisation_bridesortie1  
   int bridesortie1                    = 900;
 #endif  
@@ -114,9 +128,7 @@ extern const int pinRelais;
 extern const int pinPinceAC;
 extern bool wifiSAP;
 
-#define RXD2 18 // Pin pour le Pzem v3.0 //18
-#define TXD2 17 //17"
-#define NBTIEMQTTPUBLISH 20 //20
+
 
 #ifdef WifiMqtt
 #define WifiServer

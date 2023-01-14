@@ -223,7 +223,7 @@ int RARegulationClass::regulGrad(int dev)
   if (tesTension == 0)
     calPuis = 0;
 
-  if(sortieActive== 0){
+  if(sortieActive== 1){
 #ifdef utilisation_bridesortie1    
     calPuis = min(max(0, calPuis), routeur.bridesortie1); 
  #else
