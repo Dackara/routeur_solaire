@@ -16,7 +16,7 @@
 #define OTA               // permet la mise à jour par OTA (over the air)
 #define utilisation_seuil_intensiteBatterie_bas        // permet de modifier la valeur basse d'intensité dans la régulation
 #define utilisation_seuil_intensiteBatterie_moyen      // permet de modifier la valeur moyenned'intensité dans la régulation
-#define PMAXSORTIE1 3000.0                             // puissance maximale en W de la sortie1
+#define PMAXSORTIE1 1000.0                             // puissance maximale en W de la sortie1
 
 //**** options spécifiques MAXI  ****
 #define Pzem04t                     // utilise un pzem004 pour la mesure de puissance dans le ballon  inclure  https://github.com/mandulaj/PZEM-004T-v30
@@ -32,7 +32,7 @@
 #define TXD2 17 //17"
 #endif
 #ifdef Sortie2
-#define PMAXSORTIE2 2400.0          // puissance maximale en W de la sortie2
+#define PMAXSORTIE2 1000.0          // puissance maximale en W de la sortie2
 #endif
 #define NBTIEMQTTPUBLISH 3          //3 <=> refresh every 8s, 20 <=> refresh every 80s
 
