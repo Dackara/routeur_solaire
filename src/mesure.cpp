@@ -44,27 +44,27 @@ void RAMesureClass::mesurePinceTension(int jmax, int imax)
   { // boucle exterieure
 
     for (int i = 0; i < imax; i++)
-    { // boucle interieur
-      intPince = analogRead(pinPince) - analogRead(pinPinceRef);
+    { // boucle interieure
+      intPince          = analogRead(pinPince) - analogRead(pinPinceRef);
       intensiteBatterie = intPince - routeur.zeropince;                     // decalage du zero
       intensiteBatterie = (intensiteBatterie)*routeur.coeffPince;           // applique le coeff
       intensiteBatterie = (intensiteBatterie + (imax - 1) * pince1) / imax; // intégration de la mesure
-      pince1 = intensiteBatterie;
+      pince1            = intensiteBatterie;
     }
 
     intensiteBatterie = ((jmax - 1) * pince2 + intensiteBatterie) / jmax;
-    pince2 = intensiteBatterie;
+    pince2            = intensiteBatterie;
 
-    inttension = analogRead(pinTension);                // mesure de tension
+    inttension        = analogRead(pinTension);                // mesure de tension
                                                         //  floattension=inttension;
                                                         //  if (inttension<1500) capteurTension=inttension*routeur.coeffTension;  // applique le coeff
                                                         //    else capteurTension=(0.0383-1.85e-5*floattension+4.26e-9*floattension*floattension)*floattension;
     capteurTension = inttension * routeur.coeffTension; // applique le coeff
-    tensionav = (capteurTension + (imax - 1) * tensionav) / imax;
+    tensionav      = (capteurTension + (imax - 1) * tensionav) / imax;
   }
 
   capteurTension = tensionav;
-  inttension = capteurTension * 100;
+  inttension     = capteurTension * 100;
   capteurTension = inttension;
   capteurTension = capteurTension / 100; // arrondi à la 1er virgule
 }
@@ -103,14 +103,27 @@ void RAMesureClass::mesureTemperature()
 
 void RAMesureClass::mesure_puissance()
 {
-#define Pballon 1000 // 1000W puissance du ballon
+  
   affpzem++;
   if (affpzem < 5)
     return;
   else
     affpzem = 0;
-  puissanceDeChauffe = 0;
-  float theta = PI * (1000 - puissanceGradateur) / 1000;
+
+  short int Pballon; 
+  #ifdef Sortie2
+  if(sortieActive == 1) {
+    Pballon = routeur.Pmaxsortie1;
+  }
+  else {
+    Pballon = routeur.Pmaxsortie2;
+  }
+  #else
+  Pballon = routeur.Pmaxsortie1;
+  #endif
+
+ // puissanceDeChauffe = 0;
+  float theta = PI * (Pballon - puissanceGradateur) / Pballon;
   puissanceDeChauffe = Pballon * (1 - theta / PI + (sin(2 * theta) / 2) / PI);
 #ifdef Pzem04t
   Pzem_i = pzem.current();
