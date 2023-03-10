@@ -6,49 +6,63 @@
 // un ballon d'eau chaude
 //**************************************************************/
 
-const char *version_soft = "Version 1.6";
+const char *version_soft       = "Version 1.6";
 
 //**************************************************************/
 // Initialisation
 //**************************************************************/
 #include "settings.h"
+
+#define seuil_derive            0.2
+#define nb_boucle_ext           700       // Pour le filtrage de la mesure de la tension
+#define nb_boucle_int           20        // Pour le filtrage de la mesure de la tension
+#define traceur_size            50 
+#define DELAY_SMALL             200
+#define DELAY_NORMAL            500
+#define DELAY_LONG              5000
+
+#define BAUDRATE_ROUTEUR        115200
+
 struct param routeur;
-const int pinTriac = 27;         // GPIO27 triac
-const int pinPince = 32;         // GPIO32   pince effet hall
-const int zeroc = 33;            // GPIO33  passage par zéro de la sinusoide
-const int pinPinceRef = 34;      // GPIO34   pince effet hall ref 2.5V
-const int pinPotentiometre = 35; // GPIO35   potentiomètre
-const int pinTension = 36;       // GPIO36   capteur tension
-const int pinTemp = 23;          // GPIO23  capteurTempérature
-const int pinSortie2 = 13;       // pin13 pour  2eme "gradateur
-const int pinRelais = 19;        // Pin19 pour sortie relais
-const int pinPinceAC = 39;       // GPIO39 pince AC
-bool marcheForcee = false;
+const int pinTriac               = 27;       // GPIO27   triac
+const int pinPince               = 32;       // GPIO32   pince effet hall
+const int zeroc                  = 33;       // GPIO33   passage par zéro de la sinusoide
+const int pinPinceRef            = 34;       // GPIO34   pince effet hall ref 2.5V
+const int pinPotentiometre       = 35;       // GPIO35   potentiomètre
+const int pinTension             = 36;       // GPIO36   capteur tension
+const int pinTemp                = 23;       // GPIO23   capteurTempérature
+const int pinSortie2             = 13;       // GPIO13   pour  2eme "gradateur
+const int pinRelais              = 19;       // GPIO19   pour sortie relais
+const int pinPinceAC             = 39;       // GPIO39   pince AC
+
+bool marcheForcee                = false;
 short int marcheForceePercentage = 25;
-short int sortieActive = 1;
-unsigned long temporisation = 60;
-float intensiteBatterie = 0;
-float capteurTension = 0;
-int puissanceGradateur = 0;
-float temperatureEauChaude = 0;
-float puissanceDeChauffe = 0;
-bool etatRelaisStatique = false;
-bool modeparametrage = false;
+short int sortieActive           = 1;
+unsigned long temporisation      = 60;
+float intensiteBatterie          = 0;
+float capteurTension             = 0;
+int puissanceGradateur           = 0;
+float temperatureEauChaude       = 0;
+float puissanceDeChauffe         = 0;
+bool etatRelaisStatique          = false;
+bool modeparametrage             = false;
 
-int resetEsp = 0;
-int testwifi = 0;
-int choixSortie = 0;
-int paramchange = 0;
-bool SAP = false;
-bool MQTT = false;
-char traceurserie[50];
+int resetEsp                     = 0;
+int testwifi                     = 0;
+int choixSortie                  = 0;  //0 <=> sortie 1, 1 <=> sortie 2
+int paramchange                  = 0;
+bool SAP                         = false;
+bool MQTT                        = false;
+char traceurserie[traceur_size];
+
 #ifdef Pzem04t
-float Pzem_i = 0;
-
-float Pzem_U = 0;
-float Pzem_P = 0;
-float Pzem_W = 0;
+#define BAUDRATE_PZEM            9600
+float Pzem_i                     = 0;
+float Pzem_U                     = 0;
+float Pzem_P                     = 0;
+float Pzem_W                     = 0;
 #endif
+
 /**********************************************/
 /********** déclaration des librairiess *******/
 /**********************************************/
@@ -74,15 +88,18 @@ float Pzem_W = 0;
 
 #include "mesure.h"
 #include "regulation.h"
-int iloop = 0; // pour le parametrage par niveau
 extern int calPuis;
-float mesureAc = 0;
+
+int iloop      = 0;   // pour le parametrage par niveau
+float mesureAc = 0;   // initialisé à 0 pour être sur que si != utilisationPinceAC, la régulation démarre
+
 /***************************************/
 /******** Programme principal   ********/
 /***************************************/
+
 void setup()
 {
-  Serial.begin(115200);
+  Serial.begin(BAUDRATE_ROUTEUR);
 
   pinMode(pinTriac, OUTPUT);
   digitalWrite(pinTriac, LOW); // mise à zéro du triac au démarrage
@@ -108,10 +125,10 @@ void setup()
   RAPrgEEprom.setup();
 #endif
 
-  delay(500);
-  marcheForcee = false; // mode forcé retirer au démarrage
+  delay(DELAY_NORMAL);
+  marcheForcee           = false; // mode forcé retirer au démarrage
   marcheForceePercentage = 0;
-  temporisation = 0;
+  temporisation          = 0;
 
 #if defined WifiMqtt || defined WifiServer
   RACommunication.setup(version_soft);
@@ -130,14 +147,14 @@ void setup()
 #endif
 
 #ifdef Pzem04t
-  Serial2.begin(9600, SERIAL_8N1, RXD2, TXD2); // redefinition des broches du serial2
+  Serial2.begin(BAUDRATE_PZEM, SERIAL_8N1, RXD2, TXD2); // redefinition des broches du serial2
 #endif
 
 #ifdef parametrage
   modeparametrage = true;
 #endif
 
-  delay(500);
+  delay(DELAY_NORMAL);
   RATriac.watchdog(0);       // initialise le watchdog
   RATriac.start_interrupt(); // demarre l'interruption de zerocrossing et du timer pour la gestion du triac
 }
@@ -149,7 +166,7 @@ void loop()
 #endif
 
   RATriac.watchdog(1);                  //chien de garde à 4secondes dans timer0
-  RAMesure.mesurePinceTension(700, 20); // mesure le courant et la tension avec 2 boucles de filtrage (700,20)
+  RAMesure.mesurePinceTension(nb_boucle_ext , nb_boucle_int); // mesure le courant et la tension avec 2 boucles de filtrage (700,20)
   if (routeur.utilisationPinceAC)
   {
     mesureAc = RAMesure.mesurePinceAC(pinPinceAC, routeur.coeffMesureAc, false);
@@ -166,12 +183,12 @@ void loop()
     RAMesure.mesureTemperature(); // mesure la temperature sur le ds18b20
     RAMesure.mesure_puissance();  // mesure la puissance sur le pzem004t
 
-    int dev = RARegulation.mesureDerive(intensiteBatterie, 0.2); // donne 1 si ça dépasse l'encadrement haut et -1 si c'est en dessous de l'encadrement (Pince,0.2)
+    int dev = RARegulation.mesureDerive(intensiteBatterie , seuil_derive); // donne 1 si ça dépasse l'encadrement haut et -1 si c'est en dessous de l'encadrement (Pince,0.2)
 
     if (mesureAc < routeur.seuilCoupureAC)
     {
 
-      if (routeur.actif)
+      if (routeur.actif ) // activation du routeur ou marcher forcée
       {
         puissanceGradateur = RARegulation.regulGrad(dev); // calcule l'augmentation ou diminution du courant dans le ballon en fonction de la deviation
       }
@@ -179,12 +196,14 @@ void loop()
       {
         puissanceGradateur = 0;
       }
-      RARegulation.pilotage(); // pilotage à distance
+      
+      RARegulation.pilotage();                            // pilotage à distance
+    
     }
 
     else
     {
-      calPuis = 0;
+      calPuis            = 0;
       puissanceGradateur = 0;
     }
   }
@@ -215,7 +234,7 @@ void loop()
     sprintf(paramLog, "Courant %2.2f, Tension %2.2f, Gradateur %d", intensiteBatterie, capteurTension, puissanceGradateur);
     RACommunication.print(1, paramLog, true);
 
-    delay(200);
+    delay(DELAY_SMALL);
   }
 
   // affichage traceur serie
@@ -246,7 +265,7 @@ void loop()
   {
     RATriac.stop_interrupt();
     RAPrgEEprom.close_param();
-    delay(5000);
+    delay(DELAY_LONG);
   }
 #endif
 
