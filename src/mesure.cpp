@@ -24,6 +24,8 @@ int affpzem = 5;
 #ifdef MesureTemperature
 #include <DallasTemperature.h>
 #include <OneWire.h>
+#define temperature_seuilhaut 75
+#define temperature_seuilbas 5
 const int oneWireBus = pinTemp;
 OneWire oneWire(oneWireBus);
 DallasTemperature sensors(&oneWire);
@@ -88,11 +90,11 @@ void RAMesureClass::mesureTemperature()
   float temperatureC = sensors.getTempCByIndex(0);
   sprintf(tempMesure, "%2.2f", temperatureC);
   RACommunication.print(1, tempMesure, true);
-  if (temperatureC < 75)
+  if (  (temperatureC > temperature_seuilbas) && (temperatureC < temperature_seuilhaut) )
   {
     temperatureEauChaude = temperatureC; // supprime les pics de mauvaise mesure
   }
-  if (temperatureC == -127)
+  if ((int)temperatureC == -127)
   {
     sensors.begin(); // redemarrage du dallas
   }
