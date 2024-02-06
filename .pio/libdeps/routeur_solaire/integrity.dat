@@ -1,0 +1,6 @@
+PubSubClient  @ 2.8
+EspSoftwareSerial  @ 6.11.4
+DallasTemperature  @ 3.9.1
+OneWire  @ 2.3.5
+ArduinoJson @ 6.17.2
+thingpulse/ESP8266 and ESP32 OLED driver for SSD1306 displays  @ 4.2.0
