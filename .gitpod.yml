@@ -2,6 +2,7 @@ tasks:
   - name: routeur_solaire_dependencies
     init: >
       pip3 install -U platformio &&
+      pip3 install esptool &&
       git clean -f &&
       git fetch &&
       git pull &&
