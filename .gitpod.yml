@@ -2,13 +2,11 @@ tasks:
   - name: routeur_solaire_dependencies
     init: >
       pip3 install -U platformio &&
+      pip3 install esptool &&
       git clean -f &&
       git fetch &&
       git pull &&
       gp sync-done bundle # 'bundle' is an arbitrary name
-    command: >
-       pio run -e routeur_solaire -t buildprog  &&
-       pio run -e routeur_solaire -t buildfs 
 vscode:
   extensions:
     - ritwickdey.LiveServer    
